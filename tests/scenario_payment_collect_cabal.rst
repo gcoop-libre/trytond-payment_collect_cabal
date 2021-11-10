@@ -1,9 +1,11 @@
-=============================
-Payment Collect BCCL Scenario
-=============================
+==============================
+Payment Collect CABAL Scenario
+==============================
 
 Imports::
+
     >>> import datetime
+    >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
     >>> from operator import attrgetter
     >>> from proteus import Model, Wizard
@@ -13,12 +15,14 @@ Imports::
     ...     get_company
     >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart, get_accounts, create_tax
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
+    >>> from trytond.modules.account_invoice_ar.tests.tools import \
+    ...     create_pos, get_invoice_types, get_pos, create_tax_groups
     >>> today = datetime.date.today()
 
-Install account_invoice::
+Install payment_collect_cabal::
 
     >>> config = activate_modules('payment_collect_cabal')
 
@@ -52,28 +56,30 @@ Create chart of accounts::
     >>> account_tax = accounts['tax']
     >>> account_cash = accounts['cash']
 
+Create point of sale::
+
+    >>> _ = create_pos(company)
+    >>> pos = get_pos()
+    >>> invoice_types = get_invoice_types()
+
+Create tax groups::
+
+    >>> tax_groups = create_tax_groups()
+
 Create tax::
 
     >>> TaxCode = Model.get('account.tax.code')
     >>> tax = create_tax(Decimal('.10'))
+    >>> tax.group = tax_groups['gravado']
     >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
 
 Create payment method::
 
     >>> Journal = Model.get('account.journal')
     >>> PaymentMethod = Model.get('account.invoice.payment.method')
-    >>> Sequence = Model.get('ir.sequence')
     >>> journal_cash, = Journal.find([('type', '=', 'cash')])
     >>> payment_method = PaymentMethod()
-    >>> payment_method.name = 'Método de pago cabal'
+    >>> payment_method.name = 'Payment Method CABAL'
     >>> payment_method.journal = journal_cash
     >>> payment_method.credit_account = account_cash
     >>> payment_method.debit_account = account_cash
@@ -83,7 +89,8 @@ Create party::
 
     >>> Party = Model.get('party.party')
     >>> party = Party(name='Party')
-    >>> party.code = '789'
+    >>> party.iva_condition='responsable_inscripto'
+    >>> party.vat_number='33333333339'
     >>> party.save()
 
 Create a bank::
@@ -129,22 +136,31 @@ Create product::
 Create invoices::
 
     >>> Invoice = Model.get('account.invoice')
+    >>> InvoiceLine = Model.get('account.invoice.line')
     >>> invoice = Invoice()
     >>> invoice.party = party
+    >>> invoice.pos = pos
     >>> invoice.invoice_date = period.start_date
     >>> invoice.paymode = paymode
-    >>> line = invoice.lines.new()
+    >>> line = InvoiceLine()
+    >>> invoice.lines.append(line)
     >>> line.product = product
     >>> line.quantity = 5
     >>> line.unit_price = Decimal('40')
     >>> invoice.click('post')
+    >>> invoice.untaxed_amount
+    Decimal('200.00')
+    >>> invoice.tax_amount
+    Decimal('20.00')
     >>> invoice.total_amount
     Decimal('220.00')
     >>> invoice = Invoice()
     >>> invoice.party = party
+    >>> invoice.pos = pos
     >>> invoice.invoice_date = period.start_date
     >>> invoice.paymode = paymode
-    >>> line = invoice.lines.new()
+    >>> line = InvoiceLine()
+    >>> invoice.lines.append(line)
     >>> line.product = product
     >>> line.quantity = 5
     >>> line.unit_price = Decimal('20')
@@ -166,18 +182,21 @@ Generate cabal collect::
     >>> payment_collect = Wizard('payment.collect.send')
     >>> payment_collect.form.csv_format = False
     >>> payment_collect.form.periods.append(Period(period.id))
-    >>> payment_collect.form.expiration_date = datetime.date(2019, 12, 31)
+    >>> payment_collect.form.expiration_date = datetime.date(2021, 1, 15)
     >>> payment_collect.form.paymode_type = 'payment.paymode.cabal'
-    >>> payment_collect.execute('generate_collect')
+    >>> fecha = datetime.date(2021, 1, 1)
+    >>> context = {
+    ...     'company': company.id,
+    ...     'date': period.end_date,
+    ...     }
+    >>> with config.set_context(context):
+    ...     payment_collect.execute('generate_collect')
     >>> collect, = payment_collect.actions[0]
     >>> collect.monto_total
     Decimal('330.00')
     >>> collect.cantidad_registros == 2
     True
-    >>> filename = 'COPYTAPS.txt'
     >>> attachment = collect.attachments[1]
-    >>> attachment.data
-    True
     >>> with file_open('payment_collect_cabal/tests/COPYTAPS.txt', 'rb') as f:
     ...     attachment.data == f.read()
     True
