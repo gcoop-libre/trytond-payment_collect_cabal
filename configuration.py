@@ -5,8 +5,6 @@ from trytond.model import ModelSQL, fields
 from trytond.pool import PoolMeta, Pool
 from trytond.modules.company.model import CompanyValueMixin
 
-__all__ = ['Configuration', 'ConfigurationPaymentCollectCABAL']
-
 
 class Configuration(metaclass=PoolMeta):
     __name__ = 'payment_collect.configuration'

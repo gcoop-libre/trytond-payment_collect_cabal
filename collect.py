@@ -3,7 +3,6 @@
 # the full copyright notices and license terms.
 from trytond.pool import PoolMeta, Pool
 
-__all__ = [ 'CollectSendStart', 'CollectReturnStart']
 
 
 class CollectSendStart(metaclass=PoolMeta):
