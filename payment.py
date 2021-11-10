@@ -8,6 +8,8 @@ from trytond.pool import Pool
 from trytond.modules.payment_collect.payments import PaymentMixIn
 from trytond.model import ModelStorage, ModelSQL, ModelView, fields
 from trytond.transaction import Transaction
+from trytond.exceptions import UserError
+from trytond.i18n import gettext
 logger = logging.getLogger(__name__)
 
 RETORNOS_CABAL = {
@@ -39,14 +41,6 @@ class PayModeCabal(ModelStorage, PaymentMixIn):
     #_DEBITO_CODE = '51'
     #_CREDITO_CODE = '53'
 
-    @classmethod
-    def __setup__(cls):
-        super(PayModeCabal, cls).__setup__()
-        cls._error_messages.update({
-            'missing_company_code':
-                'Debe establecer el número de comercio CABAL',
-                })
-
     def generate_collect(self, start):
         logger.info("generate_collect: cabal")
         pool = Pool()
@@ -61,7 +55,8 @@ class PayModeCabal(ModelStorage, PaymentMixIn):
         if config.cabal_company_code:
             company_code = config.cabal_company_code
         else:
-            self.raise_user_error('missing_company_code')
+            raise UserError(gettext(
+                'payment_collect_cabal.msg_missing_company_code'))
         self.periods = start.periods
         csv_format = start.csv_format
         self.monto_total = Decimal('0')
@@ -139,13 +134,13 @@ class PayModeCabal(ModelStorage, PaymentMixIn):
         pool = Pool()
         Invoice = pool.get('account.invoice')
         Configuration = pool.get('payment_collect.configuration')
+
+        self.validate_return_file(self.return_file)
+
         config = Configuration(1)
         payment_method = None
         if config.payment_method_cabal:
             payment_method = config.payment_method_cabal
-
-        if not self.return_file:
-            self.raise_user_error('return_file_empty')
 
         # Obtener numeros de invoices de self.start.return_file
         self.paymode_type = start.paymode_type
@@ -178,3 +173,8 @@ class PayModeCabal(ModelStorage, PaymentMixIn):
             transaction.save()
         self.attach_collect()
         return [self.collect]
+
+    @classmethod
+    def validate_return_file(cls, return_file):
+        if not return_file:
+            raise UserError(gettext('payment_collect.msg_return_file_empty'))
