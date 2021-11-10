@@ -135,7 +135,7 @@ class PayModeCabal(ModelStorage, PaymentMixIn):
 
     def return_collect(self, start):
         logger.info("return_collect: cabal")
-        super(PayModeCabal, self).return_collect(start, RETORNOS_CABAL)
+        super().return_collect(start, RETORNOS_CABAL)
         pool = Pool()
         Invoice = pool.get('account.invoice')
         Configuration = pool.get('payment_collect.configuration')
