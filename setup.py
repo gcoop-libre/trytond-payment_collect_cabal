@@ -9,6 +9,14 @@ import re
 from configparser import ConfigParser
 from setuptools import setup
 
+MODULE = 'payment_collect_cabal'
+PREFIX = 'trytonar'
+MODULE2PREFIX = {
+    'payment_collect': 'trytonar',
+    'party_ar': 'trytonar',
+    'account_invoice_ar': 'trytonar',
+    }
+
 
 def read(fname):
     return io.open(
@@ -17,14 +25,21 @@ def read(fname):
 
 
 def get_require_version(name):
-    require = '%s >= %s.%s, < %s.%s'
+    #if name.startswith('trytonar_'):
+        #return ''
+    if name in LINKS:
+        return '%s@%s' % (name, LINKS[name])
+    if minor_version % 2:
+        require = '%s >= %s.%s.dev0, < %s.%s'
+    else:
+        require = '%s >= %s.%s, < %s.%s'
     require %= (name, major_version, minor_version,
         major_version, minor_version + 1)
     return require
 
 
 config = ConfigParser()
-config.read_file(open('tryton.cfg'))
+config.read_file(open(os.path.join(os.path.dirname(__file__), 'tryton.cfg')))
 info = dict(config.items('tryton'))
 for key in ('depends', 'extras_depend', 'xml'):
     if key in info:
@@ -33,79 +48,87 @@ version = info.get('version', '0.0.1')
 major_version, minor_version, _ = version.split('.', 2)
 major_version = int(major_version)
 minor_version = int(minor_version)
-name = 'trytonar_payment_collect_cabal'
+series = '%s.%s' % (major_version, minor_version)
+if minor_version % 2:
+    branch = 'master'
+else:
+    branch = series
 
-download_url = 'https://github.com/gcoop-libre/trytond-payment_collect_cabal/tree/%s.%s' % (
-    major_version, minor_version)
+download_url = 'https://github.com/gcoop-libre/trytond-payment_collect_cabal/tree/%s' % branch
+
+LINKS = {
+    'trytonar_payment_collect': ('git+https://github.com/tryton-ar/'
+        'payment_collect.git@%s#egg=trytonar_payment_collect-%s' %
+        (branch, series)),
+    'trytonar_party_ar': ('git+https://github.com/tryton-ar/'
+        'party_ar.git@%s#egg=trytonar_party_ar-%s' %
+        (branch, series)),
+    'trytonar_account_invoice_ar': ('git+https://github.com/tryton-ar/'
+        'account_invoice_ar.git@%s#egg=trytonar_account_invoice_ar-%s' %
+        (branch, series)),
+    }
 
 requires = []
 for dep in info.get('depends', []):
-    if dep == 'payment_collect':
-        requires.append(get_require_version('trytonar_%s' % dep))
-    elif dep == 'party_ar':
-        requires.append(get_require_version('trytonar_%s' % dep))
-    elif not re.match(r'(ir|res)(\W|$)', dep):
-        requires.append(get_require_version('trytond_%s' % dep))
+    if not re.match(r'(ir|res)(\W|$)', dep):
+        module_name = '%s_%s' % (MODULE2PREFIX.get(dep, 'trytond'), dep)
+        requires.append(get_require_version(module_name))
+
 requires.append(get_require_version('trytond'))
-requires.append('httplib2')
-requires.append('pyafipws')
-requires.append('pysimplesoap')
 
 tests_require = [get_require_version('proteus')]
-dependency_links = [
-    'https://github.com/tryton-ar/payment_collect/tarball/%s.%s#egg=trytonar_payment_collect-%s.%s' \
-        % (major_version, minor_version, major_version, minor_version),
-    'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar-%s.%s' \
-        % (major_version, minor_version, major_version, minor_version),
-    'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
-    'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
-    ]
+dependency_links = list(LINKS.values())
+if minor_version % 2:
+    dependency_links.append('https://trydevpi.tryton.org/')
 
-setup(name=name,
+setup(name='%s_%s' % (PREFIX, MODULE),
     version=version,
     description='Tryton module to reports account debts',
     long_description=read('README'),
     author='gcoop-libre',
     url='https://github.com/gcoop-libre/trytond-payment_collect_cabal',
     download_url=download_url,
-    package_dir={'trytond.modules.payment_collect_cabal': '.'},
+    package_dir={'trytond.modules.%s' % MODULE: '.'},
     packages=[
-        'trytond.modules.payment_collect_cabal',
-        'trytond.modules.payment_collect_cabal.tests',
+        'trytond.modules.%s' % MODULE,
+        'trytond.modules.%s.tests' % MODULE,
         ],
     package_data={
-        'trytond.modules.payment_collect_cabal': (info.get('xml', [])
-            + ['tryton.cfg', 'view/*.xml', 'locale/*.po']),
+        'trytond.modules.%s' % MODULE: (info.get('xml', []) + [
+            'tryton.cfg', 'view/*.xml', 'locale/*.po', '*.fodt',
+            '*.fods', 'icons/*.svg', 'tests/*.rst', 'tests/*.txt']),
         },
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Plugins',
         'Framework :: Tryton',
         'Intended Audience :: Developers',
         'Intended Audience :: Financial and Insurance Industry',
         'Intended Audience :: Legal Industry',
-        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'License :: OSI Approved :: '
+        'GNU General Public License v3 or later (GPLv3+)',
         'Natural Language :: English',
         'Natural Language :: Spanish',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Office/Business',
         'Topic :: Office/Business :: Financial :: Accounting',
         ],
     license='GPL-3',
-    python_requires='>=3.4',
+    python_requires='>=3.6',
     install_requires=requires,
     dependency_links=dependency_links,
     zip_safe=False,
     entry_points="""
     [trytond.modules]
-    payment_collect_cabal = trytond.modules.payment_collect_cabal
-    """,
+    %s = trytond.modules.%s
+    """ % (MODULE, MODULE),
     test_suite='tests',
     test_loader='trytond.test_loader:Loader',
     tests_require=tests_require,
