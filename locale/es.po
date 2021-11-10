@@ -1,3 +1,35 @@
 #
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
+
+msgctxt "field:payment_collect.configuration,cabal_company_code:"
+msgid "CABAL Company code"
+msgstr "Número de comercio CABAL"
+
+msgctxt "field:payment_collect.configuration,payment_method_cabal:"
+msgid "CABAL Payment Method"
+msgstr "Método de pago CABAL"
+
+msgctxt "field:payment_collect.configuration.cabal,cabal_company_code:"
+msgid "CABAL Company code"
+msgstr "Número de comercio CABAL"
+
+msgctxt "field:payment_collect.configuration.cabal,company:"
+msgid "Company"
+msgstr "Empresa"
+
+msgctxt "field:payment_collect.configuration.cabal,payment_method_cabal:"
+msgid "CABAL Payment Method"
+msgstr "Método de pago CABAL"
+
+msgctxt "model:ir.message,text:msg_missing_company_code"
+msgid "Debe establecer el número de comercio de CABAL."
+msgstr ""
+
+msgctxt "model:payment.paymode.cabal,name:"
+msgid "Pay Mode Cabal"
+msgstr "Modo de pago CABAL"
+
+msgctxt "model:payment_collect.configuration.cabal,name:"
+msgid "Payment Collect CABAL Configuration"
+msgstr "Configuración de Cobranzas CABAL"
