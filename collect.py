@@ -1,8 +1,8 @@
 # This file is part of the payment_collect_cabal module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-from trytond.pool import PoolMeta, Pool
 
+from trytond.pool import PoolMeta, Pool
 
 
 class CollectSendStart(metaclass=PoolMeta):
@@ -22,6 +22,7 @@ class CollectSendStart(metaclass=PoolMeta):
         models = super()._get_origin()
         models.append('payment.paymode.cabal')
         return models
+
 
 class CollectReturnStart(metaclass=PoolMeta):
     __name__ = 'payment.collect.return.start'
